@@ -27,7 +27,7 @@ public class EmployeeService {
         return findEmployeeById(employeeId, employeeTree);
     }
 
-    private Employee findEmployeeById(String employeeId, AVLTree tree) {
+    public Employee findEmployeeById(String employeeId, AVLTree tree) {
         return findEmployeeByIdRec(employeeId, tree.getRoot());
     }
 
