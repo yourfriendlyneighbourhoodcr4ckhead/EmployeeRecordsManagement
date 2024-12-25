@@ -3,10 +3,12 @@ package datastructures;
 import model.Employee;
 
 public class AVLTree {
-    private class Node {
-        Employee employee;
-        Node left, right;
-        int height;
+
+    // Node class to represent each node in the AVL Tree
+    public class Node {
+        public Employee employee;  // Changed to public to allow access
+        public Node left, right;   // Changed to public to allow access
+        public int height;
 
         public Node(Employee employee) {
             this.employee = employee;
@@ -16,17 +18,26 @@ public class AVLTree {
 
     private Node root;
 
-    // Utility method to get the height of a node
+    public AVLTree() {
+        this.root = null;
+    }
+
+    // Get height of the node
     private int height(Node node) {
         return node == null ? 0 : node.height;
     }
 
-    // Utility method to get the balance factor of a node
+    // Get balance factor of the node
     private int getBalanceFactor(Node node) {
         return node == null ? 0 : height(node.left) - height(node.right);
     }
 
-    // Right rotation
+    // Update the height of the node
+    private void updateHeight(Node node) {
+        node.height = Math.max(height(node.left), height(node.right)) + 1;
+    }
+
+    // Right rotate the subtree rooted with y
     private Node rightRotate(Node y) {
         Node x = y.left;
         Node T2 = x.right;
@@ -34,13 +45,13 @@ public class AVLTree {
         x.right = y;
         y.left = T2;
 
-        y.height = Math.max(height(y.left), height(y.right)) + 1;
-        x.height = Math.max(height(x.left), height(x.right)) + 1;
+        updateHeight(y);
+        updateHeight(x);
 
         return x;
     }
 
-    // Left rotation
+    // Left rotate the subtree rooted with x
     private Node leftRotate(Node x) {
         Node y = x.right;
         Node T2 = y.left;
@@ -48,51 +59,55 @@ public class AVLTree {
         y.left = x;
         x.right = T2;
 
-        x.height = Math.max(height(x.left), height(x.right)) + 1;
-        y.height = Math.max(height(y.left), height(y.right)) + 1;
+        updateHeight(x);
+        updateHeight(y);
 
         return y;
     }
 
     // Insert a new employee into the AVL tree
     public void insert(Employee employee) {
-        root = insert(root, employee);
+        root = insertRec(root, employee);
     }
 
-    private Node insert(Node node, Employee employee) {
+    private Node insertRec(Node node, Employee employee) {
         if (node == null) {
             return new Node(employee);
         }
 
-        if (employee.getEmployeeId().compareTo(node.employee.getEmployeeId()) < 0) {
-            node.left = insert(node.left, employee);
-        } else if (employee.getEmployeeId().compareTo(node.employee.getEmployeeId()) > 0) {
-            node.right = insert(node.right, employee);
+        // Compare employee ID and navigate
+        int comparison = employee.getEmployeeId().compareTo(node.employee.getEmployeeId());
+
+        if (comparison < 0) {
+            node.left = insertRec(node.left, employee);
+        } else if (comparison > 0) {
+            node.right = insertRec(node.right, employee);
         } else {
-            return node; // Duplicate employee IDs are not allowed
+            return node; // Duplicate employee ID
         }
 
-        node.height = Math.max(height(node.left), height(node.right)) + 1;
+        updateHeight(node);
 
+        // Balance the node
         int balance = getBalanceFactor(node);
 
-        // Left-Left Case
+        // Left heavy situation
         if (balance > 1 && employee.getEmployeeId().compareTo(node.left.employee.getEmployeeId()) < 0) {
             return rightRotate(node);
         }
 
-        // Right-Right Case
+        // Right heavy situation
         if (balance < -1 && employee.getEmployeeId().compareTo(node.right.employee.getEmployeeId()) > 0) {
             return leftRotate(node);
         }
 
-        // Left-Right Case
+        // Left-right heavy situation
         if (balance > 1 && employee.getEmployeeId().compareTo(node.left.employee.getEmployeeId()) > 0) {
             node.left = leftRotate(node.left);
             return rightRotate(node);
         }
 
-        // Right-Left Case
+        // Right-left heavy situation
         if (balance < -1 && employee.getEmployeeId().compareTo(node.right.employee.getEmployeeId()) < 0) {
             node.right = rightRotate(node.right);
             return leftRotate(node);
@@ -101,91 +116,88 @@ public class AVLTree {
         return node;
     }
 
-    // Search for an employee by ID
-    public Employee search(String employeeId) {
-        Node node = search(root, employeeId);
-        return node == null ? null : node.employee;
+    // In-order traversal to get all employees in sorted order
+    public void inOrderTraversal(java.util.function.Consumer<Employee> action) {
+        inOrderTraversalRec(root, action);
     }
 
-    private Node search(Node node, String employeeId) {
-        if (node == null || node.employee.getEmployeeId().equals(employeeId)) {
-            return node;
-        }
-
-        if (employeeId.compareTo(node.employee.getEmployeeId()) < 0) {
-            return search(node.left, employeeId);
-        } else {
-            return search(node.right, employeeId);
-        }
-    }
-
-    // In-order traversal to display employees sorted by employeeId
-    public void inOrderTraversal() {
-        inOrderTraversal(root);
-    }
-
-    private void inOrderTraversal(Node node) {
+    private void inOrderTraversalRec(Node node, java.util.function.Consumer<Employee> action) {
         if (node != null) {
-            inOrderTraversal(node.left);
-            System.out.println(node.employee);
-            inOrderTraversal(node.right);
+            inOrderTraversalRec(node.left, action);
+            action.accept(node.employee);
+            inOrderTraversalRec(node.right, action);
         }
     }
 
-    // Delete an employee from the AVL tree
-    public void delete(String employeeId) {
-        root = delete(root, employeeId);
+    // Delete an employee by ID
+    public void delete(Employee employee) {
+        root = deleteRec(root, employee);
     }
 
-    private Node delete(Node node, String employeeId) {
-        if (node == null) {
-            return node;
+    private Node deleteRec(Node root, Employee employee) {
+        if (root == null) {
+            return root;
         }
 
-        if (employeeId.compareTo(node.employee.getEmployeeId()) < 0) {
-            node.left = delete(node.left, employeeId);
-        } else if (employeeId.compareTo(node.employee.getEmployeeId()) > 0) {
-            node.right = delete(node.right, employeeId);
+        // Compare employee ID and navigate
+        int comparison = employee.getEmployeeId().compareTo(root.employee.getEmployeeId());
+
+        if (comparison < 0) {
+            root.left = deleteRec(root.left, employee);
+        } else if (comparison > 0) {
+            root.right = deleteRec(root.right, employee);
         } else {
-            if (node.left == null || node.right == null) {
-                node = (node.left != null) ? node.left : node.right;
+            // Node with the employee found
+            if (root.left == null || root.right == null) {
+                Node temp = root.left != null ? root.left : root.right;
+                if (temp == null) {
+                    root = null;
+                } else {
+                    root = temp;
+                }
             } else {
-                Node temp = getMinNode(node.right);
-                node.employee = temp.employee;
-                node.right = delete(node.right, temp.employee.getEmployeeId());
+                Node temp = minValueNode(root.right);
+                root.employee = temp.employee;
+                root.right = deleteRec(root.right, temp.employee);
             }
         }
 
-        if (node == null) {
-            return node;
+        if (root == null) {
+            return root;
         }
 
-        node.height = Math.max(height(node.left), height(node.right)) + 1;
+        updateHeight(root);
 
-        int balance = getBalanceFactor(node);
+        // Balance the node
+        int balance = getBalanceFactor(root);
 
-        if (balance > 1 && getBalanceFactor(node.left) >= 0) {
-            return rightRotate(node);
+        // Left heavy situation
+        if (balance > 1 && getBalanceFactor(root.left) >= 0) {
+            return rightRotate(root);
         }
 
-        if (balance < -1 && getBalanceFactor(node.right) <= 0) {
-            return leftRotate(node);
+        // Right heavy situation
+        if (balance < -1 && getBalanceFactor(root.right) <= 0) {
+            return leftRotate(root);
         }
 
-        if (balance > 1 && getBalanceFactor(node.left) < 0) {
-            node.left = leftRotate(node.left);
-            return rightRotate(node);
+        // Left-right heavy situation
+        if (balance > 1 && getBalanceFactor(root.left) < 0) {
+            root.left = leftRotate(root.left);
+            return rightRotate(root);
         }
 
-        if (balance < -1 && getBalanceFactor(node.right) > 0) {
-            node.right = rightRotate(node.right);
-            return leftRotate(node);
+        // Right-left heavy situation
+        if (balance < -1 && getBalanceFactor(root.right) > 0) {
+            root.right = rightRotate(root.right);
+            return leftRotate(root);
         }
 
-        return node;
+        return root;
     }
 
-    private Node getMinNode(Node node) {
+    // Get the node with minimum value (for deleting nodes)
+    private Node minValueNode(Node node) {
         Node current = node;
         while (current.left != null) {
             current = current.left;
@@ -193,28 +205,8 @@ public class AVLTree {
         return current;
     }
 
-    // Main method for testing
-    public static void main(String[] args) {
-        AVLTree tree = new AVLTree();
-
-        Employee e1 = new Employee("1001", "John", "Doe", "HR", "Manager", 50000);
-        Employee e2 = new Employee("1002", "Jane", "Smith", "IT", "Developer", 60000);
-        Employee e3 = new Employee("1003", "Jim", "Brown", "Sales", "Executive", 45000);
-
-        tree.insert(e1);
-        tree.insert(e2);
-        tree.insert(e3);
-
-        System.out.println("In-order traversal:");
-        tree.inOrderTraversal();
-
-        System.out.println("\nSearching for Employee with ID 1002:");
-        System.out.println(tree.search("1002"));
-
-        System.out.println("\nDeleting Employee with ID 1001:");
-        tree.delete("1001");
-
-        System.out.println("\nIn-order traversal after deletion:");
-        tree.inOrderTraversal();
+    // Get the root of the tree
+    public Node getRoot() {
+        return root;
     }
 }
